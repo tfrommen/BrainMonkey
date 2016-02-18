@@ -109,24 +109,40 @@ class Functions
     }
 
     /**
-     * Mocks the function and makes it return an arbitrary value.
+     * Mocks the function and makes it return (and optionally echo) an arbitrary value.
      *
-     * @param mixed $return
+     * @param mixed $value
+	 * @param bool  $echo
      */
-    public function justReturn($return = null)
+    public function justReturn($value = null, $echo = false)
     {
-        Patchwork\replace($this->name, function () use ($return) {
-            return $return;
+        Patchwork\replace($this->name, function () use ($value) {
+            if ($echo) {
+                echo $value;
+            }
+
+            return $value;
         });
     }
 
     /**
-     * Mocks the function making it return one of the received arguments, the first by default.
+     * Mocks the function and makes it echo an arbitrary value.
+     *
+     * @param mixed $value
+     */
+    public function justEcho($value = null)
+    {
+        $this->justReturn($value, true);
+    }
+
+    /**
+     * Mocks the function making it return (and optionally echo) one of the received arguments, the first by default.
      * Throw an exception if the function does not receive desired argument.
      *
-     * @param int $n The position (1-based) of the argument to return
+     * @param int  $n    The position (1-based) of the argument to return
+	 * @param bool $echo
      */
-    public function returnArg($n = 1)
+    public function returnArg($n = 1, $echo = false)
     {
         $name = $this->name;
         if (! is_int($n) || $n < 1) {
@@ -142,9 +158,36 @@ class Functions
                     "{$name} was called with {$count} params, can't return arg ".($n)."."
                 );
             }
+			$value = func_num_args() > $n0 ? func_get_arg($n0) : null;
+            if ($echo) {
+                echo $value;
+            }
 
-            return func_num_args() > $n0 ? func_get_arg($n0) : null;
+            return $value;
         });
+    }
+
+    /**
+     * Mocks the function making it echo one of the received arguments, the first by default.
+     * Throw an exception if the function does not receive desired argument.
+     *
+     * @param int $n The position (1-based) of the argument to echo
+     */
+    public function echoArg($n = 1)
+    {
+        if (! is_int($n) || $n < 1) {
+            throw new InvalidArgumentException(
+                "Argument number for {$this->name} must be a greater than 1 integer."
+            );
+        }
+		$count = func_num_args();
+		$n0 = $n - 1;
+		if ($count < $n0) {
+			throw new RuntimeException(
+				"{$this->name} was called with {$count} params, can't echo arg ".($n)."."
+			);
+		}
+		$this->returnArg($n, true);
     }
 
     /**
